@@ -1,0 +1,15 @@
+{
+  "name": "haskell-indent",
+  "main": "./lib/haskell-indent",
+  "version": "0.0.0",
+  "description": "A short description of your package",
+  "keywords": [
+  ],
+  "repository": "https://github.com/atom/haskell-indent",
+  "license": "MIT",
+  "engines": {
+    "atom": ">=1.0.0 <2.0.0"
+  },
+  "dependencies": {
+  }
+}
