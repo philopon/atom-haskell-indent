@@ -28,9 +28,6 @@ module.exports = HaskellIndent =
           @newlineIndent textEditor, char.range.end.row - 1
 
   newlineIndent: (textEditor, row) ->
-    textEditor ?= atom.workspace.getActiveTextEditor()
-    row ?= textEditor.getLastCursor().getBufferRow()
-
     levels = @indentLevel textEditor, row
 
     textEditor.setIndentationForBufferRow row, levels.current
@@ -84,7 +81,7 @@ module.exports = HaskellIndent =
     beforeLine  = textEditor.getTextInBufferRange [[row-1, 0], [row, 0]]
     currentLine = textEditor.getTextInBufferRange [[row, 0], [row+1, 0]]
 
-    levels = {current: currentLevel, next: currentLevel}
+    levels = {current: currentLevel, next: currentLevel, rules: []}
 
     defInfo = @definitionInfo textEditor, row
 
@@ -92,12 +89,16 @@ module.exports = HaskellIndent =
       when 'module'
         if /\bwhere\b/.test currentLine
           levels.next = 0
+          levels.rules.push('module:next-of-where')
         else if row == defInfo.topLevelRow
           levels.next = 1
+          levels.rules.push('module:where')
+        break
 
       when 'function'
-        if defInfo.topLevelRow == row
-          levels.next = textEditor.indentationForBufferRow defInfo.topLevelRow + 1
+        if row == defInfo.topLevelRow
+          levels.next = textEditor.indentationForBufferRow(defInfo.topLevelRow) + 1
+          levels.rules.push('function:top')
           break
 
         i_where = currentLine.search /\bwhere\b/
@@ -105,22 +106,27 @@ module.exports = HaskellIndent =
           tlIndent = textEditor.indentationForBufferRow defInfo.topLevelRow
           levels.current = tlIndent + 0.5
           levels.next    = tlIndent + 1
+          levels.rules.push('function:where')
           break
 
         i_if = currentLine.search /\bif\b/
         if i_if >= 0
           levels.next = i_if / textEditor.getTabLength()
+          levels.rules.push('function:if')
           break
 
       when 'type'
         if defInfo.topLevelRow == row
           i_double_colon = currentLine.search /(::|∷)/
           levels.next = i_double_colon / textEditor.getTabLength()
+          levels.rules.push('type:::')
           break
 
       else
         if /\bwhere\b/.test currentLine
           levels.next += 1
+          levels.rules.push('*:where')
           break
 
+    console.log "indent rule:" + JSON.stringify(levels.rules) + " current:" + levels.current + " next:" + levels.next
     return levels
