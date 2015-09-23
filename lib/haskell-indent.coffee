@@ -6,12 +6,14 @@ module.exports = HaskellIndent =
     activate: (state) ->
         @subscriptions  = new CompositeDisposable
 
-        #@subscriptions.add atom.commands.add 'atom-text-editor', 'haskell-indent:smart indent', => @smartIndent()
+        #@subscriptions.add atom.commands.add 'atom-text-editor', 'haskell-indent:smart indent', =>
+        #    @smartIndent()
 
         for te in atom.workspace.getTextEditors()
             @setTextEditor te
 
-        @subscriptions.add atom.workspace.onDidAddTextEditor ({textEditor}) => @setTextEditor textEditor
+        @subscriptions.add atom.workspace.onDidAddTextEditor ({textEditor}) =>
+            @setTextEditor textEditor
 
     deactivate: ->
         @subscriptions.dispose()
