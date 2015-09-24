@@ -4,39 +4,44 @@ module.exports = HaskellIndent =
 
   activate: (state) ->
     @subscriptions  = new CompositeDisposable
-    @textEditors = new WeakMap
+    @textEditors    = new WeakMap
 
     #@subscriptions.add atom.commands.add 'atom-text-editor', 'haskell-indent:smart indent', =>
     #    @smartIndent()
 
     for te in atom.workspace.getTextEditors()
-      @setTextEditor te
+      @addGrammarCheck te
 
     @subscriptions.add atom.workspace.onDidAddTextEditor ({textEditor}) =>
-      @setTextEditor textEditor
+      @addGrammarCheck textEditor
 
   deactivate: ->
     @subscriptions.dispose()
 
-  setTextEditor: (textEditor) ->
+  addGrammarCheck: (textEditor) ->
     @subscriptions.add textEditor.onDidChangeGrammar (grammar) =>
-      @setSmartIndent(textEditor, grammar)
-    @setSmartIndent textEditor
+      @checkGrammar(textEditor, grammar)
+    @checkGrammar textEditor
 
-  setSmartIndent: (textEditor, grammar = null) ->
+  checkGrammar: (textEditor, grammar = null) ->
     grammar = textEditor.getGrammar() if !grammar
 
     if grammar.scopeName == 'source.haskell'
-      event = textEditor.onDidInsertText (char) =>
-        if char.text == "\n"
-          @newlineIndent(textEditor, char.range.end.row - 1)
-
-      @subscriptions.add event
-      @textEditors.set(textEditor, event)
-
+      @addSmartIndent textEditor
     else
-      @textEditors.get(textEditor)?.dispose()
-      @textEditors.delete(textEditor)
+      @removeSmartIndent textEditor
+
+  addSmartIndent: (textEditor) ->
+    event = textEditor.onDidInsertText (char) =>
+      if char.text == "\n"
+        @newlineIndent(textEditor, char.range.end.row - 1)
+
+    @subscriptions.add event
+    @textEditors.set(textEditor, event)
+
+  removeSmartIndent: (textEditor) ->
+    @textEditors.get(textEditor)?.dispose()
+    @textEditors.delete(textEditor)
 
   newlineIndent: (textEditor, row) ->
     levels = @indentLevel(textEditor, row)
