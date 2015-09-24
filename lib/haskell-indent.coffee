@@ -1,10 +1,10 @@
 {CompositeDisposable} = require 'atom'
 
 module.exports = HaskellIndent =
-  subscriptions:  null
 
   activate: (state) ->
     @subscriptions  = new CompositeDisposable
+    @textEditors = new WeakMap
 
     #@subscriptions.add atom.commands.add 'atom-text-editor', 'haskell-indent:smart indent', =>
     #    @smartIndent()
@@ -19,15 +19,24 @@ module.exports = HaskellIndent =
     @subscriptions.dispose()
 
   setTextEditor: (textEditor) ->
-    @subscriptions.add textEditor.onDidChangeGrammar =>
-      @setSmartIndent textEditor
+    @subscriptions.add textEditor.onDidChangeGrammar (grammar) =>
+      @setSmartIndent(textEditor, grammar)
     @setSmartIndent textEditor
 
-  setSmartIndent: (textEditor) ->
-    if textEditor.getGrammar().scopeName == 'source.haskell'
-      @subscriptions.add textEditor.onDidInsertText (char) =>
+  setSmartIndent: (textEditor, grammar = null) ->
+    grammar = textEditor.getGrammar() if !grammar
+
+    if grammar.scopeName == 'source.haskell'
+      event = textEditor.onDidInsertText (char) =>
         if char.text == "\n"
           @newlineIndent(textEditor, char.range.end.row - 1)
+
+      @subscriptions.add event
+      @textEditors.set(textEditor, event)
+
+    else
+      @textEditors.get(textEditor)?.dispose()
+      @textEditors.delete(textEditor)
 
   newlineIndent: (textEditor, row) ->
     levels = @indentLevel(textEditor, row)
@@ -132,4 +141,5 @@ module.exports = HaskellIndent =
 
     console.log "haskell-indent:" + JSON.stringify(levels.rules) +
       " current:" + levels.current + " next:" + levels.next
+
     return levels
